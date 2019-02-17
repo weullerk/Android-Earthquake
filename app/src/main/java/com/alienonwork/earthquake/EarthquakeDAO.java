@@ -6,8 +6,8 @@ import android.arch.persistence.room.Delete;
 import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.OnConflictStrategy;
 import android.arch.persistence.room.Query;
+import android.database.Cursor;
 
-import com.alienonwork.earthquake.Earthquake;
 
 import java.util.List;
 
@@ -24,4 +24,24 @@ public interface EarthquakeDAO {
 
     @Query("SELECT * FROM earthquake ORDER BY mDate DESC")
     public LiveData<List<Earthquake>> loadAllEarthquakes();
+
+    @Query("SELECT mId as _id, " +
+            "mDetails as suggest_text_1, " +
+            "mId as suggest_intent_data_id " +
+            "FROM earthquake " +
+            "WHERE mDetails LIKE :query " +
+            "ORDER BY mdate DESC")
+    public Cursor generateSeachSuggestions(String query);
+
+    @Query("SELECT * " +
+            "FROM earthquake " +
+            "WHERE mDetails LIKE :query " +
+            "ORDER BY mdate DESC")
+    public LiveData<List<Earthquake>> searchEarthquakes(String query);
+
+    @Query("SELECT * " +
+            "FROM earthquake " +
+            "WHERE mId = :id " +
+            "LIMIT 1")
+    public LiveData<Earthquake> getEarthquake(String id);
 }
