@@ -1,10 +1,18 @@
 package com.alienonwork.earthquake;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.os.Build;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import com.firebase.jobdispatcher.Constraint;
@@ -31,6 +39,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -40,6 +49,8 @@ public class EarthquakeUpdateJobService extends SimpleJobService {
     private static final String TAG = "EarthquakeUpdateJob";
     private static final String UPDATE_JOB_TAG = "update_job";
     private static final String PERIODIC_JOB_TAG = "periodic_job";
+    private static final String NOTIFICATION_CHANNEL = "earthquake";
+    public static final int NOTIFICATION_ID = 1;
 
     public static void scheduleUpdateJob(Context context) {
         FirebaseJobDispatcher jobDispatcher = new FirebaseJobDispatcher(new GooglePlayDriver(context));
@@ -120,6 +131,17 @@ public class EarthquakeUpdateJobService extends SimpleJobService {
             }
             httpConnection.disconnect();
 
+            if (job.getTag().equals(PERIODIC_JOB_TAG)) {
+                Earthquake largestNewEarthquake = findLargestNewEarthquake(earthquakes);
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+                int minimumMagnitude = Integer.parseInt(prefs.getString(PreferencesActivity.PREF_MIN_MAG, "3"));
+
+                if (largestNewEarthquake != null && largestNewEarthquake.getMagnitude() >= minimumMagnitude) {
+                    broadcastNotification(largestNewEarthquake);
+                }
+            }
+
             EarthquakeDatabaseAccessor
                     .getInstance(getApplication())
                     .earthquakeDAO()
@@ -163,5 +185,65 @@ public class EarthquakeUpdateJobService extends SimpleJobService {
                         .build());
             }
         }
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.earthquake_channel_name);
+
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL, name, NotificationManager.IMPORTANCE_HIGH);
+            channel.enableVibration(true);
+            channel.enableLights(true);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+    private void broadcastNotification(Earthquake earthquake) {
+        createNotificationChannel();
+
+        Intent startActivityIntent = new Intent(this, EarthquakeMainActivity.class);
+        PendingIntent launchIntent = PendingIntent.getActivity(this, 0, startActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        final NotificationCompat.Builder earthquakeNotificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL);
+
+        earthquakeNotificationBuilder
+                .setSmallIcon(R.drawable.notification_icon)
+                .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setContentIntent(launchIntent)
+                .setAutoCancel(true)
+                .setShowWhen(true);
+
+        earthquakeNotificationBuilder
+                .setWhen(earthquake.getDate().getTime())
+                .setContentTitle("M:" + earthquake.getMagnitude())
+                .setContentText(earthquake.getDetails())
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(earthquake.getDetails()));
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(NOTIFICATION_ID, earthquakeNotificationBuilder.build());
+    }
+
+    private Earthquake findLargestNewEarthquake(List<Earthquake> newEarthquakes) {
+        List<Earthquake> earthquakes = EarthquakeDatabaseAccessor
+                .getInstance(getApplication())
+                .earthquakeDAO()
+                .loadAllEarthquakeBlocking();
+
+        Earthquake largestNewEarthquake = null;
+
+        for (Earthquake earthquake : newEarthquakes) {
+            if (earthquakes.contains(earthquake)) {
+                continue;
+            }
+            if (largestNewEarthquake == null || earthquake.getMagnitude() > largestNewEarthquake.getMagnitude()) {
+                largestNewEarthquake = earthquake;
+            }
+        }
+
+        return largestNewEarthquake;
     }
 }

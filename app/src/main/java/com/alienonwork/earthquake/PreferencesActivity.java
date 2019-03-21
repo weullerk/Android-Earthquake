@@ -15,6 +15,8 @@ public class PreferencesActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.preferences);
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     public static class PrefFragment extends PreferenceFragmentCompat {
