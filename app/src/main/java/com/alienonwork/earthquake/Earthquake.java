@@ -32,7 +32,6 @@ public class Earthquake {
         return mDetails;
     }
 
-
     public Location getLocation() {
         return mLocation;
     }

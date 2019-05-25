@@ -51,6 +51,9 @@
                 <action android:name="com.firebase.jobdispatcher.ACTION_EXECUTE"></action>
             </intent-filter>
         </service>
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAvrKPIyuPUom1PLHDpaH8DtTjis9dsXTQ" />
     </application>
 
 </manifest>
