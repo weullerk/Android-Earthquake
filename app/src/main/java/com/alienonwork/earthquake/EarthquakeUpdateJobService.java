@@ -147,6 +147,14 @@ public class EarthquakeUpdateJobService extends SimpleJobService {
                     .earthquakeDAO()
                     .insertEarthquakes(earthquakes);
 
+            Intent newEarthquake = new Intent(this, EarthquakeWidget.class);
+            newEarthquake.setAction(EarthquakeWidget.NEW_QUAKE_BROADCAST);
+            sendBroadcast(newEarthquake);
+
+            Intent newListEarthquake = new Intent(this, EarthquakeListWidget.class);
+            newListEarthquake.setAction(EarthquakeWidget.NEW_QUAKE_BROADCAST);
+            sendBroadcast(newListEarthquake);
+
             scheduleNextUpdate(job);
 
             return RESULT_SUCCESS;

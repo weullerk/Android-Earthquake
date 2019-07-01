@@ -47,4 +47,7 @@ public interface EarthquakeDAO {
 
     @Query("SELECT * FROM earthquake ORDER BY mDate DESC")
     public List<Earthquake> loadAllEarthquakeBlocking();
+
+    @Query("SELECT * FROM earthquake ORDER BY mDate DESC LIMIT 1")
+    Earthquake getLatestEarthquake();
 }
